@@ -65,7 +65,10 @@
     .resumo-card h3{margin:0 0 8px;font-size:13px;color:#1e3a8a}
     .resumo-card .linha{margin-bottom:4px}
     .resumo-card ul{margin:0;padding-left:16px}
-    .ano-maior{color:#b91c1c;font-weight:700}
+    
+    /* CORES DOS ANOS NO RESUMO */
+    .ano-maior{color:#b91c1c;font-weight:700} /* Vermelho */
+    .ano-menor{color:#1e3a8a;font-weight:700} /* Azul Escuro */
     
     .card{background:#fff;border-radius:14px;padding:14px;margin-bottom:18px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
     
@@ -155,6 +158,51 @@
         font-weight: 700;
         text-transform: uppercase;
         box-shadow: 0 2px 4px rgba(136, 19, 55, 0.3);
+    }
+
+    /* === TARJA VERMELHA PARA A DATA MAIOR === */
+    .tarja-data-maior {
+        display: inline-block;
+        background: #dc2626; /* Vermelho vivo */
+        color: #fff;
+        font-weight: 700;
+        padding: 3px 6px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+    }
+
+    /* === TARJA AZUL PARA A DATA MENOR (NOVO) === */
+    .tarja-data-menor {
+        display: inline-block;
+        background: #1e3a8a; /* Azul Escuro */
+        color: #fff;
+        font-weight: 700;
+        padding: 3px 6px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(30, 58, 138, 0.3);
+    }
+
+    /* === CLASSE E TAG: VALOR APRESENTADO ZERADO === */
+    .evento-zerado, .evento-zerado td {
+        background-color: #f3e8ff !important; 
+        color: #581c87 !important; 
+        font-weight: 500;
+    }
+    .evento-zerado .tag-glosa-alta, .evento-zerado .tag-alerta {
+        opacity: 1 !important; 
+    }
+    .tag-zerado {
+        display: inline-block;
+        background: #6b21a8; 
+        color: #fff;
+        font-size: 9px;
+        padding: 2px 5px;
+        border-radius: 4px;
+        margin-left: 4px;
+        font-weight: 700;
+        text-transform: uppercase;
+        vertical-align: middle;
+        box-shadow: 0 2px 4px rgba(107, 33, 168, 0.3);
     }
 
     @keyframes pulse {
@@ -303,13 +351,16 @@ function copiarSQL() {
     const pegInput = document.getElementById("peg");
     let t = pegInput.value.trim();
     if (!t) return void alert("Informe o(s) número(s) do PEG.");
-    t = t.replace(/[\n\s]+/g, ",").replace(/,+/g, ",");
+    
+    // Tratamento para múltiplos PEGs: Aceita ; , ou espaço
+    t = t.replace(/[\s,;]+/g, ",").replace(/,+/g, ",");
     if (t.endsWith(",")) t = t.slice(0, -1);
+    
     const textToCopy = SQL_BASE.replaceAll("{{PEG}}", t);
     
     if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(textToCopy).then(() => {
-            document.getElementById("input").value = ""; alert("Código SQL (Lote) copiado!");
+            document.getElementById("input").value = ""; alert("Código SQL copiado!");
         }).catch(() => fallbackCopy(textToCopy));
     } else fallbackCopy(textToCopy);
 }
@@ -317,7 +368,7 @@ function copiarSQL() {
 function fallbackCopy(text) {
     const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.left = "-9999px";
     document.body.appendChild(ta); ta.focus(); ta.select();
-    try { if(document.execCommand('copy')) { document.getElementById("input").value = ""; alert("Código SQL (Lote) copiado!"); } } catch (e) { alert("Erro ao copiar."); }
+    try { if(document.execCommand('copy')) { document.getElementById("input").value = ""; alert("Código SQL copiado!"); } } catch (e) { alert("Erro ao copiar."); }
     document.body.removeChild(ta);
 }
 
@@ -350,7 +401,6 @@ function atualizarFiltroVisual() {
         // REGRA: Se tiver apenas 1 PEG, mostra o resumo. Se > 1, esconde.
         if (totalPegsReais === 1) {
             divResumo.style.display = "block";
-            // Pega o único PEG disponível
             const unicoPeg = Object.keys(GLOBAL_DADOS_RESUMO).find(k => k !== 'todos');
             if(unicoPeg) renderizarConteudoResumo(unicoPeg); 
         } else {
@@ -391,7 +441,8 @@ function renderizarConteudoResumo(chavePeg) {
         html += `<div class="resumo-card"><h3>📅 Exercícios distintos</h3><ul>`;
         const maiorAno = Math.max(...anosKeys.map(x=>parseInt(x)));
         anosKeys.forEach(a => {
-            const anoClass = parseInt(a) === maiorAno ? 'ano-maior' : '';
+            // REGRA: Anos menores ficam azul escuro
+            const anoClass = parseInt(a) === maiorAno ? 'ano-maior' : 'ano-menor';
             const listaGuias = Array.from(dados.anos[a]);
             const agrupaBenef = {};
             listaGuias.forEach(item => {
@@ -402,7 +453,10 @@ function renderizarConteudoResumo(chavePeg) {
                 agrupaBenef[b].push(g);
             });
             Object.keys(agrupaBenef).forEach(benef => {
-                html += `<li class="${anoClass}">Guias <b>${agrupaBenef[benef].join(', ')}</b> — ${benef} (${a})</li>`;
+                // REGRA: Gramática (Guia vs Guias)
+                const numGuias = agrupaBenef[benef].length;
+                const textoGuia = numGuias > 1 ? "Guias" : "Guia";
+                html += `<li class="${anoClass}">${textoGuia} <b>${agrupaBenef[benef].join(', ')}</b> — ${benef} (${a})</li>`;
             });
         });
         html += `</ul></div>`;
@@ -430,7 +484,7 @@ function render() {
         const selectFiltro = document.getElementById("filtroPegSelect");
 
         saida.innerHTML = ""; resumo.innerHTML = ""; resumo.style.display = "none"; painelFiltro.style.display = "none";
-        // INICIALIZA GLOBAL CORRETAMENTE
+        
         GLOBAL_DADOS_RESUMO = { 
             'todos': { totalPago: 0, totalInformado: 0, anos: {}, eps: new Set(), info: {} } 
         };
@@ -446,7 +500,7 @@ function render() {
             if (tipo === "0") {
                 const p = c[34] || "Desc";
                 listaPegs.add(p);
-                // INICIA OBJETO GUIA COM FLAG temInternacao
+                
                 const regime = (c[29]||"").toLowerCase();
                 const isInternacao = regime.includes("internação") || regime.includes("internacao");
 
@@ -463,10 +517,8 @@ function render() {
             } else if (guiaAtualObj) {
                 guiaAtualObj.linhasEventos.push(l);
                 
-                // Checa Glosa
                 if (tipo === "2" || moeda(c[11]) > 0) guiaAtualObj.temGlosa = true;
                 
-                // Checa se é Evento de Internação
                 if (tipo === "1") {
                     const desc = (c[19]||"").toLowerCase();
                     if (desc.match(/diária|diaria|internado|visita hospitalar/)) {
@@ -519,6 +571,25 @@ function render() {
             painelFiltro.style.display = "flex";
         } else {
             painelFiltro.style.display = "none";
+        }
+
+        // PRÉ-CÁLCULO: IDENTIFICAR ANOS DISTINTOS POR PEG
+        const anosInfoPorPeg = {};
+        guiasObjetos.forEach(obj => {
+            const p = obj.peg;
+            const c = obj.cabecalho.split("\t");
+            const dataStr = c[3] || "";
+            const anoStr = dataStr.slice(-4);
+            if (anoStr) {
+                const ano = parseInt(anoStr);
+                if (!anosInfoPorPeg[p]) anosInfoPorPeg[p] = { anos: new Set() };
+                anosInfoPorPeg[p].anos.add(ano);
+            }
+        });
+        for (let p in anosInfoPorPeg) {
+            const arr = Array.from(anosInfoPorPeg[p].anos);
+            anosInfoPorPeg[p].multiplos = arr.length > 1;
+            anosInfoPorPeg[p].maiorAno = arr.length > 0 ? Math.max(...arr) : null;
         }
 
         let tabelaEvento = null, linhaValores = null, sA=0, sG=0, sP=0, sPF=0; 
@@ -585,6 +656,17 @@ function render() {
             }
             
             let dataHtml = data;
+            
+            // REGRA: DESTACAR DATA COM TARJA VERMELHA (MAIOR ANO) OU AZUL (MENORES)
+            const infoAnos = anosInfoPorPeg[pegAtual];
+            if (infoAnos && infoAnos.multiplos && ano) {
+                if (parseInt(ano) === infoAnos.maiorAno) {
+                    dataHtml = `<span class="tarja-data-maior">${data}</span>`;
+                } else {
+                    dataHtml = `<span class="tarja-data-menor">${data}</span>`;
+                }
+            }
+
             const dtAtend = parseData(data), dtReceb = parseData(c[33]);
             if(dtAtend && dtReceb) {
                 const d = new Date(dtAtend); d.setFullYear(d.getFullYear()+1);
@@ -603,8 +685,10 @@ function render() {
                     }
                 }
             });
+            
+            let infoGuiaBeneficiario = `${ordemGuia} - <b>${beneficiario}</b>`;
             if (temAnoDistinto) {
-                dataHtml += `<br><span class="tag-exercicio">⚠️ Exercício Distinto</span>`;
+                infoGuiaBeneficiario += `<br><span class="tag-exercicio">⚠️ Exercício Distinto</span>`;
             }
 
             const trClass = `linha-beneficiario ${isEps?"eps":""} ${c[29].toLowerCase()!=="ambulatorial"?"internacao":""}`;
@@ -612,7 +696,7 @@ function render() {
             saida.appendChild(card);
 
             const tbl = document.createElement("table");
-            tbl.innerHTML = `<tr class="cab-guia"><th>Beneficiário</th><th>Data</th><th>Matrícula</th><th>Regime</th><th>Tratamento</th><th>Condição</th><th class="valor">Valor Apres.</th><th class="valor">Valor Glosa</th><th class="valor">Valor Pgto</th><th class="valor">Valor PF</th><th class="valor">PF Benner</th></tr><tr class="${trClass}" data-eps="${isEps}"><td>${ordemGuia} - <b>${beneficiario}</b></td><td>${dataHtml}</td><td>${matricula}${isEps?'<span class="badge-eps">EPS</span>':''}</td><td>${c[29]}</td><td class="${tratClass}">${tratHtml}</td><td>${c[31]||'N/A'}</td><td class="valor">-</td><td class="valor">-</td><td class="valor">-</td><td class="valor">-</td><td class="valor ${pfClass}">-</td></tr>`;
+            tbl.innerHTML = `<tr class="cab-guia"><th>Beneficiário</th><th>Data</th><th>Matrícula</th><th>Regime</th><th>Tratamento</th><th>Condição</th><th class="valor">Valor Apres.</th><th class="valor">Valor Glosa</th><th class="valor">Valor Pgto</th><th class="valor">Valor PF</th><th class="valor">PF Benner</th></tr><tr class="${trClass}" data-eps="${isEps}"><td>${infoGuiaBeneficiario}</td><td>${dataHtml}</td><td>${matricula}${isEps?'<span class="badge-eps">EPS</span>':''}</td><td>${c[29]}</td><td class="${tratClass}">${tratHtml}</td><td>${c[31]||'N/A'}</td><td class="valor">-</td><td class="valor">-</td><td class="valor">-</td><td class="valor">-</td><td class="valor ${pfClass}">-</td></tr>`;
             card.appendChild(tbl); 
             tornarColunasAjustaveis(tbl.rows[0]);
             
@@ -627,19 +711,26 @@ function render() {
                 const tipo = cEvt[39];
                 if (tipo === "1") {
                     const vp = moeda(cEvt[13]);
-                    sA+=moeda(cEvt[9]); sG+=moeda(cEvt[11]); sP+=vp; sPF+=moeda(cEvt[15]);
+                    const valApresentado = moeda(cEvt[9]);
+                    
+                    sA+=valApresentado; sG+=moeda(cEvt[11]); sP+=vp; sPF+=moeda(cEvt[15]);
                     
                     target.totalPago += vp;
                     GLOBAL_DADOS_RESUMO['todos'].totalPago += vp;
 
-                    const tr = tabelaEvento.insertRow(); if (isEps) tr.className = "evento-eps";
+                    const tr = tabelaEvento.insertRow(); 
+                    if (isEps) tr.classList.add("evento-eps");
+
+                    if (valApresentado === 0) {
+                        tr.classList.add("evento-zerado");
+                    }
+
                     const dataEvt = cEvt[7]||"", anoEvt = dataEvt.slice(-4);
                     let evtHtml = cEvt[19]||"";
                     const evtLower = evtHtml.toLowerCase();
                     
                     if (evtLower.match(/diária|internado|visita hospitalar/)) evtHtml += ' <span class="tag-internacao">INTERNAÇÃO</span>';
                     
-                    // LÓGICA DE INCOMPATIBILIDADE
                     if (obj.temInternacao && evtLower.includes("consulta")) {
                         evtHtml += ' <span class="tag-incompativel">Incompatível com internação</span>';
                     }
@@ -647,13 +738,28 @@ function render() {
                     const cols = [cEvt[7], cEvt[5], cEvt[6], evtHtml, cEvt[8], cEvt[9], cEvt[10], cEvt[11], cEvt[12], cEvt[13], cEvt[15], cEvt[16]];
                     cols.forEach((v, i) => {
                         const td = tr.insertCell(); let val = v;
+                        
                         if([5,7,9,10].includes(i)) {
                             val = fmt(moeda(v));
-                            if(i===7 && moeda(v)>500) val += ' <span class="tag-glosa-alta" title="Glosa > 500">⚠️</span>';
+                            
+                            if (i === 5 && moeda(v) === 0) {
+                                val += ' <span class="tag-zerado">ZERADO</span>';
+                            }
+                            
+                            if(i===7 && moeda(v)>500) {
+                                val += ' <span class="tag-glosa-alta" title="Glosa > 500">⚠️</span>';
+                            }
                         }
-                        if(i===0 && guiaAno && anoEvt && guiaAno!==anoEvt) { td.innerHTML=`${val} <span class="tag-alerta">⚠️</span>`; td.className="celula-alerta"; }
-                        else td.innerHTML = val;
-                        if(i>=4 && i<=10) td.classList.add("valor"); if(i===10 && moeda(v)===0) td.classList.add("pf-zero");
+                        
+                        if(i===0 && guiaAno && anoEvt && guiaAno!==anoEvt) { 
+                            td.innerHTML=`${val} <span class="tag-alerta">⚠️</span>`; 
+                            td.className="celula-alerta"; 
+                        } else { 
+                            td.innerHTML = val; 
+                        }
+                        
+                        if(i>=4 && i<=10) td.classList.add("valor"); 
+                        if(i===10 && moeda(v)===0) td.classList.add("pf-zero");
                     });
                 } else if (tipo === "2") {
                     const tr = tabelaEvento.insertRow(); tr.className = "glosa"; 
@@ -669,15 +775,14 @@ function render() {
 
         let somaTotalInfo = 0;
         Array.from(listaPegs).forEach(p => somaTotalInfo += GLOBAL_DADOS_RESUMO[p].totalInformado);
+        
         GLOBAL_DADOS_RESUMO['todos'].totalInformado = somaTotalInfo;
 
-        // Se for Single PEG, simula a seleção imediata
         if (listaPegs.size === 1) {
             const unicoPeg = Array.from(listaPegs)[0];
-            resumo.style.display = "block";
+            resumo.style.display = "block"; 
             renderizarConteudoResumo(unicoPeg);
         } else {
-            // Em lote, inicia limpo
             atualizarFiltroVisual();
         }
 
